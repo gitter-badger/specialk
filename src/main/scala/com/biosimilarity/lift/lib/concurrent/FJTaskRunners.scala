@@ -1,6 +1,7 @@
  // $Id$
 
-package scala.concurrent
+//package scala.concurrent
+package com.biosimilarity.lift.lib.concurrent
 
 import java.util.concurrent.atomic._
 import jsr166y._
@@ -19,7 +20,7 @@ trait FJTaskRunners extends TaskRunnersBase {
       FJTaskWrapper.runOnCurrentThreadOrPool(new RecursiveAction {
         def compute() = try {
           f()
-        } catch { case e => e.printStackTrace() }
+        } catch { case e : Throwable => e.printStackTrace() }
         // TODO: exception handling
       }, pool)
     }

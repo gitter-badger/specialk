@@ -16,8 +16,12 @@ import com.biosimilarity.lift.lib.moniker._
 import net.liftweb.amqp._
 
 import scala.util.continuations._ 
-import scala.concurrent.{Channel => Chan, _}
+//import scala.concurrent.{Channel => Chan, _}
 //import scala.concurrent.cpsops._
+
+import com.biosimilarity.lift.lib.concurrent._
+import com.biosimilarity.lift.lib.concurrent.cpsops._
+
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.LinkedHashMap
@@ -47,13 +51,15 @@ extends DTSMsgScope[Namespace,Var,Tag,Value]
   @transient lazy val AnAMQPTraceMonitor = new TraceMonitor[Msgs.DReq,Msgs.DRsp]()
 
   class StdMonadicAgentJSONAMQPDispatcher[TxPort](
-    host : String, port : Int,
+    //host : String, port : Int,
+    override val uri : URI,
     override val requests : ListBuffer[Msgs.JTSReq],
     override val responses : ListBuffer[Msgs.JTSRsp],
     override val nameSpace : Option[LinkedHashMap[Moniker,Socialite[Msgs.DReq,Msgs.DRsp]]],
     @transient override val traceMonitor : TraceMonitor[Msgs.DReq,Msgs.DRsp]
   ) extends StdMonadicJSONAMQPDispatcher[Msgs.JTSReqOrRsp](
-    host, port
+    //host, port
+    uri
   ) with MonadicAgency[String,Msgs.DReq,Msgs.DRsp] {  
     override type Wire = String
     override type Trgt = Msgs.JTSReqOrRsp
@@ -91,8 +97,9 @@ extends DTSMsgScope[Namespace,Var,Tag,Value]
 	case None => {
 	  val jd =
 	    new StdMonadicAgentJSONAMQPDispatcher[Msgs.JTSReqOrRsp](
-	      srcURI.getHost,
-	      getPort(srcURI.getPort, defaultPort),
+	      //srcURI.getHost,
+	      //getPort(srcURI.getPort, defaultPort),
+              srcURI,
 	      new ListBuffer[Msgs.JTSReq](),
 	      new ListBuffer[Msgs.JTSRsp](),
 	      Some( new LinkedHashMap[Moniker,Socialite[Msgs.DReq,Msgs.DRsp]]() ),

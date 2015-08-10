@@ -18,7 +18,9 @@ import net.liftweb.amqp._
 import scala.util.continuations._
 
 import scala.concurrent.{Channel => Chan, _}
-import scala.concurrent.cpsops._
+//import scala.concurrent.cpsops._
+import com.biosimilarity.lift.lib.concurrent._
+import com.biosimilarity.lift.lib.concurrent.cpsops._
 
 import _root_.com.rabbitmq.client.{ Channel => RabbitChan, _}
 
@@ -146,14 +148,18 @@ trait AMQPTwistedPairScope[T]
 	AMQPQueue[A](
 	  exchange,
 	  routingKey,
-	  theMDS.serve[A]( factory, srcHost, srcPort, exchange ),
-	  theMDS.sender[A]( srcHost, srcPort, exchange, routingKey )
+	  //theMDS.serve[A]( factory, srcHost, srcPort, exchange ),
+          theMDS.serve[A]( factory, src, exchange ),
+	  //theMDS.sender[A]( srcHost, srcPort, exchange, routingKey )
+          theMDS.sender[A]( src, exchange, routingKey )
 	),
 	AMQPQueue[A](
 	  exchange,
 	  routingKey,
-	  theMDS.serve[A]( factory, trgtHost, trgtPort, exchange ),
-	  theMDS.sender[A]( trgtHost, trgtPort, exchange, routingKey )
+	  //theMDS.serve[A]( factory, trgtHost, trgtPort, exchange ),
+          theMDS.serve[A]( factory, trgt, exchange ),
+	  //theMDS.sender[A]( trgtHost, trgtPort, exchange, routingKey )
+          theMDS.sender[A]( trgt, exchange, routingKey )
 	)
       )
     }    
@@ -192,14 +198,18 @@ trait JSONOverAMQPTwistedPairScope[T]
 	  AMQPQueue[String](
 	    exchange,
 	    routingKey,
-	    theMDS.serve[String]( factory, srcHost, srcPort, exchange ),
-	    theMDS.sender[String]( srcHost, srcPort, exchange, routingKey )
+	    //theMDS.serve[String]( factory, srcHost, srcPort, exchange ),
+            theMDS.serve[String]( factory, src, exchange ),
+	    //theMDS.sender[String]( srcHost, srcPort, exchange, routingKey )
+            theMDS.sender[String]( src, exchange, routingKey )
 	  ),
 	  AMQPQueue[String](
 	    exchange,
 	    routingKey,
-	    theMDS.serve[String]( factory, trgtHost, trgtPort, exchange ),
-	    theMDS.sender[String]( trgtHost, trgtPort, exchange, routingKey )
+	    //theMDS.serve[String]( factory, trgtHost, trgtPort, exchange ),
+            theMDS.serve[String]( factory, trgt, exchange ),
+	    //theMDS.sender[String]( trgtHost, trgtPort, exchange, routingKey )
+            theMDS.sender[String]( trgt, exchange, routingKey )
 	  )
 	)
       )
@@ -370,14 +380,18 @@ trait JustificationOverAMQPTwistedPairScope[Req,Rsp]
 	  AMQPQueue[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]](
 	    exchange,
 	    routingKey,
-	    theMDS.serve[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( factory, srcHost, srcPort, exchange ),
-	    theMDS.sender[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( srcHost, srcPort, exchange, routingKey )
+	    //theMDS.serve[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( factory, srcHost, srcPort, exchange ),
+            theMDS.serve[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( factory, src, exchange ),
+	    //theMDS.sender[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( srcHost, srcPort, exchange, routingKey )
+            theMDS.sender[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( src, exchange, routingKey )
 	  ),
 	  AMQPQueue[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]](
 	    exchange,
 	    routingKey,
-	    theMDS.serve[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( factory, trgtHost, trgtPort, exchange ),
-	    theMDS.sender[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( trgtHost, trgtPort, exchange, routingKey )
+	    //theMDS.serve[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( factory, trgtHost, trgtPort, exchange ),
+            theMDS.serve[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( factory, trgt, exchange ),
+	    //theMDS.sender[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( trgtHost, trgtPort, exchange, routingKey )
+            theMDS.sender[Either[JustifiedRequest[Req,Rsp],JustifiedResponse[Req,Rsp]]]( trgt, exchange, routingKey )
 	  )
 	)
       )
@@ -504,7 +518,107 @@ package usage {
       }
 
       loop( msgCount )
-    }        
+    }
+
+//     def testJSON(
+//       parity : Boolean,
+//       srcHost : URI,
+//       trgtHost : URI,
+//       queueStr : String,
+//       msgCount : Int
+//     ) = {      
+//       val factory = new ConnectionFactory()
+
+//       factory.setUri(
+//         if ( parity ) { srcHost } else { trgtHost }
+//       )
+
+//       val scope : StdJSONOverAMQPTwistedPairScope[Int] =
+// 	StdJSONOverAMQPTwistedPairScope[Int]( factory, srcHost, trgtHost )
+
+//       val qpM : scope.JSONOverAMQPTwistedPairXFormM[Int] =
+// 	new scope.JSONOverAMQPTwistedPairXFormM[Int]( queueStr, "routeroute" )
+
+//       //val qtp : scope.AMQPAbstractQueue[Int] = qpM.zero[Int]
+//       val qtp : scope.AMQPAbstractQueue[Int] = qpM.zero[Int]
+
+//       val msgMap = new HashMap[Int,Int]()
+
+//       def loop( count : Int ) : Unit = {
+// 	println( "entering msg loop with count : " + count )
+// 	count match {
+// 	  case 0 => {
+// 	    println( "Nothing to do." )
+// 	  }
+// 	  case i => {
+// 	    if ( i < 0 ) {
+// 	      throw new Exception(
+// 		"Tsk, tsk, play fair, now... please keep msg counts positive!"
+// 	      )
+// 	    }
+// 	    else {
+// 	      println(
+// 		"Waiting for a message on queue : " + queueStr
+// 	      )
+// 	      for( msg <- qpM( qtp ) ) {
+// 		val mms = msgMap.size
+// 		println(
+// 		  (
+// 		    "received msg number " + mms
+// 		    + " with contents " + msg
+// 		    + " on " + queueStr 
+// 		  )
+// 		)
+
+// 		msgMap += ( ( (mms + 1), msg ) )
+
+// 		if ( mms == count - 1 ) {
+// 		  if ( !parity ) {
+// 		    println(
+// 		      "Ha! We have the last word with msg " + mms
+// 		    )
+// 		    qtp ! mms
+// 		  }
+// 		  println( "All " + count + " messages sent and received." )
+// 		  println( "Conversation summary: " )
+// 		  for( order <- 1 to count ) {
+// 		    val msg = msgMap( order )
+// 		    val prefix = "received " + msg + " "
+// 		    val suffix = 
+// 		      order match {
+// 			case 1 => 1 + "st" + " "
+// 			case 2 => 2 + "nd" + " "
+// 			case 3 => 3 + "rd" + " "
+// 			case _ => order + "th" + " "
+// 		      }
+// 		    println( prefix + suffix + "msg" )
+// 		  }
+// 		  println( "Test successful." )
+// 		}
+// 		else {
+// 		  if ( mms < count ) {
+// 		    println( "replying with msg " + mms )
+// 		    qtp ! mms
+// 		  }
+// 		  else {
+// 		    println( "received unexpected msg: " + msg )
+// 		  }
+// 		}
+// 	      }
+// 	    }
+// 	  }
+// 	}
+//       }
+      
+//       if ( parity ) {
+// 	println(
+// 	  "sending initial msg " + srcSeed + " on queue " + queueStr
+// 	)
+// 	qtp ! srcSeed
+//       }
+
+//       loop( msgCount )
+//     }
     
   }
 }

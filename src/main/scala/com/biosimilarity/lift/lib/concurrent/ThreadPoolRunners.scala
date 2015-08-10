@@ -1,4 +1,5 @@
-package scala.concurrent
+//package scala.concurrent
+package com.biosimilarity.lift.lib.concurrent
 
 import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
 import scala.util.continuations._
@@ -52,7 +53,7 @@ trait ThreadPoolRunners extends TaskRunnersBase
           // Preserve interrupt status
           Thread.currentThread().interrupt();
         }
-        case e => e.printStackTrace() // TODO check which exceptions can be expected
+        case e : Throwable => e.printStackTrace() // TODO check which exceptions can be expected
       }
 
     }

@@ -16,7 +16,9 @@ import net.liftweb.amqp._
 import scala.util.continuations._
 
 import scala.concurrent.{Channel => Chan, _}
-import scala.concurrent.cpsops._
+//import scala.concurrent.cpsops._
+import com.biosimilarity.lift.lib.concurrent._
+import com.biosimilarity.lift.lib.concurrent.cpsops._
 
 import _root_.com.rabbitmq.client.{ Channel => RabbitChan, _}
 
@@ -72,22 +74,56 @@ trait MonadicAMQPDispatcher[T]
 	  //}
 	//}      
       }
-    }   
+    }
 
-  override def beginService(
-    factory : ConnectionFactory,
-    host : String,
-    port : Int
-  ) = {
-    beginService( factory, host, port, "mult" )
-  }
+   def acceptConnections(
+     factory : ConnectionFactory,
+     uri : URI
+   ) = {
+     factory.setUri( uri );
+     Generator {
+       k : ( Channel => Unit @suspendable ) => {
+	 //shift {
+	 //innerk : (Unit => Unit @suspendable) => {
+         
+	 val connection =
+           factory.newConnection()
+	 val channel =
+	   connection.createChannel()
+	 k( channel );
+	 //}
+	 //}      
+       }
+     }
+   }
 
-   def beginService(
-    factory : ConnectionFactory,
-    host : String,
-    port : Int,
-    exQNameRoot : String
-  ) = serve [T] ( factory, host, port, exQNameRoot )
+   override def beginService (
+     factory : ConnectionFactory,
+     host : String,
+     port : Int
+   ) : Generator[T,Unit,Unit] = {
+     beginService ( factory, host, port, "mult" )
+   }
+
+   def beginService (
+     factory : ConnectionFactory,
+     uri : URI
+   ) : Generator[T,Unit,Unit] = {
+     beginService ( factory, uri, "mult" )
+   }
+
+   def beginService (
+     factory : ConnectionFactory,
+     host : String,
+     port : Int,
+     exQNameRoot : String
+   ) : Generator[T,Unit,Unit] = serve [T] ( factory, host, port, exQNameRoot )
+
+   def beginService (
+     factory : ConnectionFactory,
+     uri : URI,
+     exQNameRoot : String
+   ) : Generator[T,Unit,Unit] = serve [T] ( factory, uri, exQNameRoot )
 
    def serve [T] (
     factory : ConnectionFactory,
@@ -102,6 +138,34 @@ trait MonadicAMQPDispatcher[T]
 	)
 
 	for( channel <- acceptConnections( factory, host, port ) ) {
+	  spawn {
+	    // Open bracket
+	    BasicLogService.blog( "Connected: " + channel )
+            val qname = (exQNameRoot + "_queue")
+            channel.exchangeDeclare( exQNameRoot, "direct" )
+            channel.queueDeclare(qname, true, false, false, null);
+            channel.queueBind( qname, exQNameRoot, "routeroute" )
+
+            for ( t <- read [T] ( channel, exQNameRoot ) ) { k( t ) }
+
+            // Close bracket
+	  }
+	}
+      //}
+  }
+
+   def serve [T] (
+     factory : ConnectionFactory,
+     uri: URI,
+     exQNameRoot : String
+   ) = Generator {
+    k : ( T => Unit @suspendable ) =>
+      //shift {
+	BasicLogService.blog(
+	  "The rabbit is running... (with apologies to John Updike)"
+	)
+
+	for( channel <- acceptConnections( factory, uri ) ) {
 	  spawn {
 	    // Open bracket
 	    BasicLogService.blog( "Connected: " + channel )
@@ -232,9 +296,10 @@ trait DefaultMonadicAMQPDispatcher[T]
 extends MonadicAMQPDispatcher[T] {
   self : WireTap =>
   //import AMQPDefaults._
-  
-  def host : String
-  def port : Int
+    
+  def uri : URI
+  def host : String = uri.getHost
+  def port : Int = uri.getPort
 
   override def tap [A] ( fact : A ) : Unit = {
     BasicLogService.reportage( fact )
@@ -252,32 +317,38 @@ extends MonadicAMQPDispatcher[T] {
 }
 
 class StdMonadicAMQPDispatcher[T](
-  override val host : String,
-  override val port : Int
+  override val uri : URI
+  //override val host : String,
+  //override val port : Int
 ) extends DefaultMonadicAMQPDispatcher[T](
 ) with WireTap {
 }
 
 class StdMonadicJSONAMQPDispatcher[T](
-  override val host : String,
-  override val port : Int
-) extends StdMonadicAMQPDispatcher[String]( host, port )
+  override val uri : URI
+  //override val host : String,
+  //override val port : Int
+) extends StdMonadicAMQPDispatcher[String]( uri ) //StdMonadicAMQPDispatcher[String]( host, port )
 with MonadicJSONAMQPDispatcher[T]
 with MonadicWireToTrgtConversion {
 }
 
 object StdMonadicAMQPDispatcher {
   def apply[T] (
-    host : String, port : Int
+    //host : String, port : Int
+    uri : URI
   ) : StdMonadicAMQPDispatcher[T] = {
     new StdMonadicAMQPDispatcher(
-      host, port
+      //host, port
+      uri
     )
   }
   def unapply[T](
     smAMQPD : StdMonadicAMQPDispatcher[T]
-  ) : Option[(String,Int)] = {
-    Some( ( smAMQPD.host, smAMQPD.port ) )
+  //) : Option[(String,Int)] = {
+    ) : Option[(URI)] = {
+    //Some( ( smAMQPD.host, smAMQPD.port ) )
+    Some( ( smAMQPD.uri ) )
   }    
 }
 
@@ -311,8 +382,8 @@ trait SemiMonadicJSONAMQPTwistedPair[T]
       case Some( jd ) => jd
       case None => {
 	val jd =
-	  new StdMonadicJSONAMQPDispatcher[T]( srcURI.getHost, getPort(srcURI.getPort, port) )
-
+	  //new StdMonadicJSONAMQPDispatcher[T]( srcURI.getHost, getPort(srcURI.getPort, port) )
+          new StdMonadicJSONAMQPDispatcher[T]( srcURI.uri )
 	if ( dispatchOnCreate ) {
 	  reset {
 	    for(

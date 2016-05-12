@@ -58,7 +58,7 @@
       <name>Scales XML Repository</name>
       <url>http://scala-scales.googlecode.com/svn/repo</url>
     </repository>
-    <!--repository> <!-- This repo is no longer works >
+    <!--repository> <!-- This repo is no longer working >
       <id>repository.codehaus.org</id>
       <name>Codehaus</name>
       <url>http://repository.codehaus.org/com/thoughtworks</url>

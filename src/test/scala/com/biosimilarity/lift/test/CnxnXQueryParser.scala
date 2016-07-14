@@ -1,7 +1,7 @@
 //jsk - kept this separate to keep the StringExtensions less cluttered with withs
 //using a trait so it doesnt get called as a static object except through extensions
 
-package com.biosimilarity.lift.lib.extensions
+package com.biosimilarity.lift.test
 
 import com.biosimilarity.lift.lib.UUIDOps
 import com.biosimilarity.lift.model.store._

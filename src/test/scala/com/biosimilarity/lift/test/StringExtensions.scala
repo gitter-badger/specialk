@@ -1,6 +1,7 @@
-package com.biosimilarity.lift.lib.extensions
+package com.biosimilarity.lift.test
 
 import java.net.URI
+
 import com.biosimilarity.lift.lib.moniker._
 import com.biosimilarity.lift.model.store._
 

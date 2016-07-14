@@ -1,4 +1,4 @@
-package com.biosimilarity.lift.lib.extensions
+package com.biosimilarity.lift.test
 
 import java.net.URI
 //import javax.ws.rs.core._
